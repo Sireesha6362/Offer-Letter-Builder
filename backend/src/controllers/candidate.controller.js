@@ -68,4 +68,18 @@ const getCandidateById = async (req, res) => {
   }
 };
 
-module.exports = { createCandidate, getCandidates, getCandidateById };
+// DELETE /api/candidates/:id
+const deleteCandidate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM offer_versions WHERE offer_id IN (SELECT id FROM offers WHERE candidate_id = ?)', [id]);
+    await db.query('DELETE FROM offer_status_log WHERE offer_id IN (SELECT id FROM offers WHERE candidate_id = ?)', [id]);
+    await db.query('DELETE FROM offers WHERE candidate_id = ?', [id]);
+    await db.query('DELETE FROM candidates WHERE id = ?', [id]);
+    res.json({ message: 'Candidate deleted.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error.', error: err.message });
+  }
+};
+
+module.exports = { createCandidate, getCandidates, getCandidateById, deleteCandidate };

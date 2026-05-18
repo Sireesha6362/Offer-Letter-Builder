@@ -249,7 +249,26 @@ const downloadPDF = async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.setContent(offers[0].generated_html, { waitUntil: 'networkidle0' });
+
+    const isDraft = offers[0].status === 'Draft';
+    const watermark = isDraft ? `
+      <style>
+        body::before {
+          content: 'DRAFT';
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 120px;
+          color: rgba(255, 0, 0, 0.15);
+          font-weight: bold;
+          z-index: 9999;
+          pointer-events: none;
+        }
+      </style>` : '';
+
+    const finalHtml = offers[0].generated_html + watermark;
+    await page.setContent(finalHtml, { waitUntil: 'networkidle0' });
 
     const pdf = await page.pdf({
       format: 'A4',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import API from '../api';
 
 function CandidateForm() {
@@ -6,9 +6,23 @@ function CandidateForm() {
     full_name: '', email: '', phone: '',
     designation: '', department: '', source: ''
   });
+  const [candidates, setCandidates] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const fetchCandidates = async () => {
+    try {
+      const res = await API.get('/candidates');
+      setCandidates(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,6 +36,7 @@ function CandidateForm() {
       await API.post('/candidates', form);
       setMessage('Candidate added successfully!');
       setForm({ full_name: '', email: '', phone: '', designation: '', department: '', source: '' });
+      fetchCandidates();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add candidate.');
     } finally {
@@ -29,9 +44,20 @@ function CandidateForm() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this candidate?')) return;
+    try {
+      await API.delete(`/candidates/${id}`);
+      setMessage('Candidate deleted successfully!');
+      fetchCandidates();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete candidate.');
+    }
+  };
+
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
-      <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6">
+      <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6 mb-8">
         <h1 className="text-2xl font-bold text-blue-700 mb-6">Add New Candidate</h1>
 
         {message && <div className="bg-green-100 text-green-600 p-3 rounded mb-4">{message}</div>}
@@ -65,6 +91,30 @@ function CandidateForm() {
         >
           {loading ? 'Adding...' : 'Add Candidate'}
         </button>
+      </div>
+
+      {/* Candidates List */}
+      <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6">
+        <h2 className="text-lg font-semibold mb-4">All Candidates</h2>
+        {candidates.length === 0 ? (
+          <p className="text-gray-400">No candidates yet.</p>
+        ) : (
+          candidates.map((c) => (
+            <div key={c.id} className="border rounded p-4 mb-3 flex justify-between items-center">
+              <div>
+                <p className="font-semibold">{c.full_name}</p>
+                <p className="text-sm text-gray-400">{c.email}</p>
+                <p className="text-sm text-gray-400">{c.designation} — {c.department}</p>
+              </div>
+              <button
+                onClick={() => handleDelete(c.id)}
+                className="bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
